@@ -1,0 +1,6 @@
+name: dgsp_amr_qc_multiqc
+channels:
+  - bioconda
+  - conda-forge
+dependencies:
+  - multiqc=1.14

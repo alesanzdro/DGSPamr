@@ -1,0 +1,10 @@
+name: dgsp_amr_qc
+channels:
+  - bioconda
+  - conda-forge
+dependencies:
+  - fastqc>=0.11.8
+  - trimmomatic>=0.39
+  - bbmap>=39.01
+  - kmerfinder=3.0.2
+  - quast=5.2.0

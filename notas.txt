@@ -1,0 +1,80 @@
+
+# Interesante
+# https://speciationgenomics.github.io/Trimmomatic/
+# https://hackmd.io/@elperedoStudents/B18MOJW1D
+# https://indexofire.github.io/pathongs/book/C12_Metagenomics-Analysis/11_kmerfinder/
+# https://cge.food.dtu.dk/services/KmerFinder/ # Donde se descarga base de datos
+# https://cge.food.dtu.dk/services/KmerFinder/etc/kmerfinder_db.tar.gz
+
+
+
+######################################################
+ADAPTADORES TRIMMOMATIC
+
+
+#When ILLUMINACLIP is used on paired-end data the default is to remove R2 if R2 is identical (well reverse compliment actually) to R1 in sequence. 
+#This is not well documented, but the appropriate information is available at, for instance:
+#IILLUMINACLIP also supports two additional optional parameters, which affect palindrome mode only.
+#ILLUMINACLIP:<fastaWithAdaptersEtc>:<seed mismatches>:<palindrome clip threshold>:<simple clip threshold>:<minAdapterLength>:<keepBothReads>
+#minAdapterLength: In addition to the alignment score, palindrome mode can verify that a minimum length of adapter has been detected. If unspecified, this defaults to 8 bases, for historical reasons. However, since palindrome mode has a very low false positive rate, this can be safely reduced, even down to 1, to allow shorter adapter fragments to be removed.
+#keepBothReads: After read-though has been detected by palindrome mode, and the adapter sequence removed, the reverse read contains the same sequence information as the forward read, albeit in reverse complement. For this reason, the default behaviour is to entirely drop the reverse read. By specifying „true‟ for this parameter, the reverse read will also be retained, which may be useful e.g. if the downstream tools cannot handle a combination of paired and unpaired reads
+
+Otras configuraciones
+
+# LEADING:10 TRAILING:10 SLIDINGWINDOW:4:30 MINLEN:50
+#:2:30:10 LEADING:5 TRAILING:5 SLIDINGWINDOW:4:20 MINLEN:50
+#2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:36
+
+# TRIMMOMATIC
+# adapters: https://github.com/usadellab/Trimmomatic/tree/main/adapters
+#cd /software/
+#git clone git@github.com:usadellab/Trimmomatic.git
+
+######################################################
+BBDUK
+#Yes, you can quality-trim and adapter-trim at the same time with BBDuk. The command line would be like this:
+#bbduk.sh -Xmx1g in1=r1.fq in2=r2.fq out1=clean1.fq out2=clean2.fq minlen=25 qtrim=rl trimq=10 ktrim=r k=25 mink=11 ref=truseq.fq.gz hdist=1
+
+
+######################################################
+SPADES
+
+
+ # * Corrected reads are in spades_test/corrected/
+ # * Assembled contigs are in spades_test/contigs.fasta
+ # * Assembled scaffolds are in spades_test/scaffolds.fasta
+ # * Assembly graph is in spades_test/assembly_graph.fastg
+ # * Assembly graph in GFA format is in spades_test/assembly_graph_with_scaffolds.gfa
+ # * Paths in the assembly graph corresponding to the contigs are in spades_test/contigs.paths
+ # * Paths in the assembly graph corresponding to the scaffolds are in spades_test/scaffolds.paths
+
+
+######################################################
+PROKKA
+#In this section we will use a software tool called Prokka to annotate the draft genome sequence produced in the previous tutorial. Prokka is a “wrapper”; it collects together several pieces of software (from various authors), and so avoids “re-inventing the wheel”.
+#Prokka finds and annotates features (both protein coding regions and RNA genes, i.e. tRNA, rRNA) present on on a sequence. Note, Prokka uses a two-step process for the annotation of protein coding regions: first, protein coding regions on the genome are identified using Prodigal; second, the function of the encoded protein is predicted by similarity to proteins in one of many protein or protein domain databases. Prokka is a software tool that can be used to annotate bacterial, archaeal and viral genomes quickly, generating standard output files in GenBank, EMBL and gff formats. More information about Prokka can be found here.
+
+
+######################################################
+RESFINDER
+
+Otra configuración:
+
+#${CONDAPATH}/dgsp_amr_detection/bin/run_resfinder.py \
+#-db_res ${CGE_RESFINDER_RESGENE_DB} \
+#-o ${OUTPUT_PATH}"/assembly/resfinder/"${sample} \
+#-l 0.6 -t 0.8 --acquired \
+#-s "Escherichia coli" --point -db_point ${CGE_RESFINDER_RESPOINT_DB} \
+#-ifa ${OUTPUT_PATH}"/assembly/spades/"${sample}/contigs.fasta \
+#1> ${OUTPUT_PATH}"/log/resfinder/"${sample}.out \
+#2> ${OUTPUT_PATH}"/log/resfinder/"${sample}.err
+
+
+######################################################
+N50
+
+http://sepsis-omics.github.io/tutorials/modules/workshop_overview/
+N50
+N50 statistic defines assembly quality in terms of contiguity. Given a set of contigs, the N50 is defined as the sequence length of the shortest contig at 50% of the total assembly length. It can be thought of as the point of half of the mass of the distribution; the number of bases from all contigs longer than the N50 will be close to the number of bases from all contigs shorter than the N50. For example, consider 9 contigs with the lengths 2,3,4,5,6,7,8,9,and 10; their sum is 54, half of the sum is 27, and the size of the genome also happens to be 54. 50% of this assembly would be 10 + 9 + 8 = 27 (half the length of the sequence). Thus the N50=8, which is the size of the contig which, along with the larger contigs, contain half of sequence of a particular genome. Note: When comparing N50 values from different assemblies, the assembly sizes must be the same size in order for N50 to be meaningful.
+
+N50 can be described as a weighted median statistic such that 50% of the entire assembly is contained in contigs or scaffolds equal to or larger than this value.
