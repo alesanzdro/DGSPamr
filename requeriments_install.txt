@@ -1,0 +1,49 @@
+
+######################################################
+# Install environments
+conda env create -f envs/qc.yml 
+conda env create -f envs/qc_multiqc.yml
+conda env create -f envs/assembly.yml
+conda env create -f envs/amr.yml
+
+######################################################
+# ADAPTADORES TRIMMOMATIC
+
+# adapters: https://github.com/usadellab/Trimmomatic/tree/main/adapters
+# cd /software/
+git clone git@github.com:usadellab/Trimmomatic.git
+
+######################################################
+# PROKKA
+conda activate dgsp_amr_detection 
+cd /ALMEIDA/PROJECTS/BACTERIAS/DGSP/resources
+prokka --setupdb
+
+######################################################
+# RESFINDER DATABASES
+
+
+# If you don't want to specify the path to the databases every time you run ResFinder, you need to set the environment variable specified in the "Environment Variables Table" in this README.
+
+# Go to the location where you want to store the databases. Clone the datbases you need.
+
+# Note: We are currently working on hosting tarballed versions of the databases that can be downloaded, so that cloning can be avoided.
+
+cd /ALMEIDA/PROJECTS/BACTERIAS/DGSP/resources
+
+git clone https://git@bitbucket.org/genomicepidemiology/resfinder_db.git db_cge/resfinder
+git clone https://bitbucket.org/genomicepidemiology/pointfinder_db/ db_cge/pointfinder
+git clone https://bitbucket.org/genomicepidemiology/disinfinder_db/ db_cge/disinfinder
+
+# Set approximate environment variables.
+
+# Example of how to set the environment variable in the bash shell. Remember this is only temporary, if you want it set every time you log in you need to add this line to for example your .bashrc file.
+export CGE_RESFINDER_RESGENE_DB="/ALMEIDA/PROJECTS/BACTERIAS/DGSP/resources/db_cge/resfinder"
+export CGE_RESFINDER_RESPOINT_DB="/ALMEIDA/PROJECTS/BACTERIAS/DGSP/resources/db_cge/pointfinder"
+export CGE_DISINFINDER_DB="/ALMEIDA/PROJECTS/BACTERIAS/DGSP/resources/db_cge/disinfinder"
+
+# para instalar ambientes con X path de internet 
+# conda install anaconda-client -n base
+
+
+
