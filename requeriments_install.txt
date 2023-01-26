@@ -34,6 +34,9 @@ cd /ALMEIDA/PROJECTS/BACTERIAS/DGSP/resources
 git clone https://git@bitbucket.org/genomicepidemiology/resfinder_db.git db_cge/resfinder
 git clone https://bitbucket.org/genomicepidemiology/pointfinder_db/ db_cge/pointfinder
 git clone https://bitbucket.org/genomicepidemiology/disinfinder_db/ db_cge/disinfinder
+git clone https://bitbucket.org/genomicepidemiology/mlst_db/src/master/ db_cge/mlst
+git clone https://bitbucket.org/genomicepidemiology/serotypefinder_db/src/master/ db_cge/serotypefinder
+
 
 # Set approximate environment variables.
 
@@ -41,6 +44,7 @@ git clone https://bitbucket.org/genomicepidemiology/disinfinder_db/ db_cge/disin
 export CGE_RESFINDER_RESGENE_DB="/ALMEIDA/PROJECTS/BACTERIAS/DGSP/resources/db_cge/resfinder"
 export CGE_RESFINDER_RESPOINT_DB="/ALMEIDA/PROJECTS/BACTERIAS/DGSP/resources/db_cge/pointfinder"
 export CGE_DISINFINDER_DB="/ALMEIDA/PROJECTS/BACTERIAS/DGSP/resources/db_cge/disinfinder"
+export CGE_SEROTYPEFINDER_DB="/ALMEIDA/PROJECTS/BACTERIAS/DGSP/resources/db_cge/serotypefinder"
 
 # para instalar ambientes con X path de internet 
 # conda install anaconda-client -n base

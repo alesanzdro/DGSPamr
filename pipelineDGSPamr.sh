@@ -4,7 +4,9 @@
 export CGE_RESFINDER_RESGENE_DB="/ALMEIDA/PROJECTS/BACTERIAS/DGSP/resources/db_cge/resfinder"
 export CGE_RESFINDER_RESPOINT_DB="/ALMEIDA/PROJECTS/BACTERIAS/DGSP/resources/db_cge/pointfinder"
 export CGE_DISINFINDER_DB="/ALMEIDA/PROJECTS/BACTERIAS/DGSP/resources/db_cge/disinfinder"
+export CGE_MLST_DB="/ALMEIDA/PROJECTS/BACTERIAS/DGSP/resources/db_cge/mlst"
 
+#export PERL5LIB=/software/miniconda3/envs/dgsp_amr_mlst_detection/lib/perl5/5.32
 
 
 INPUT_PATH="/ALMEIDA/PROJECTS/BACTERIAS/DGSP/RAW"
@@ -12,10 +14,13 @@ RUN="LSPV_001_22_M07580"
 SAMPLESHEET="/ALMEIDA/PROJECTS/BACTERIAS/DGSP/RAW/LSPV_001_22_M07580/samplesheet.csv"
 IR=${INPUT_PATH}"/"${RUN}
 OUTPUT_PATH="/ALMEIDA/PROJECTS/BACTERIAS/DGSP/analysis/"${RUN}
-CONDAPATH="/software/miniconda3/envs/"
+CONDAPATH="/software/miniconda3/envs"
 DATABASE_KMERFINDER="/ALMEIDA/PROJECTS/BACTERIAS/DGSP/resources/kmerfinder/databases/bacteria/bacteria"
 THREADS=16
 SPADESMEM=80
+
+# AMR MLST env
+AMR_MLST_ENV=${CONDAPATH}/dgsp_amr_mlst_detection
 
 
 
@@ -29,12 +34,14 @@ if [[ ! -e ${OUTPUT_PATH} ]]; then
     mkdir -p ${OUTPUT_PATH}"/qc/fastqc/raw"
     mkdir -p ${OUTPUT_PATH}"/qc/fastqc/trim"
     mkdir -p ${OUTPUT_PATH}"/qc/kmerfinder"
-    mkdir -p ${OUTPUT_PATH}"/qc/assembly_metrics"
+    mkdir -p ${OUTPUT_PATH}"/qc/quast"
     mkdir -p ${OUTPUT_PATH}"/qc/stats/trimmomatic"
     mkdir -p ${OUTPUT_PATH}"/out/0_fastq"
     mkdir -p ${OUTPUT_PATH}"/out/1_assembly"
     mkdir -p ${OUTPUT_PATH}"/out/2_amr"
     mkdir -p ${OUTPUT_PATH}"/out/3_annotation"
+    mkdir -p ${OUTPUT_PATH}"/out/4_more_analysis/mlst"
+    mkdir -p ${OUTPUT_PATH}"/out/4_more_analysis/serotype"
     mkdir -p ${OUTPUT_PATH}"/log/trimmomatic"
     mkdir -p ${OUTPUT_PATH}"/log/bbmap"
     mkdir -p ${OUTPUT_PATH}"/log/kmerfinder"
@@ -42,12 +49,16 @@ if [[ ! -e ${OUTPUT_PATH} ]]; then
     mkdir -p ${OUTPUT_PATH}"/log/quast"
     mkdir -p ${OUTPUT_PATH}"/log/prokka"
     mkdir -p ${OUTPUT_PATH}"/log/resfinder"
+    mkdir -p ${OUTPUT_PATH}"/log/mlst_cge"
+    mkdir -p ${OUTPUT_PATH}"/log/mlst_torsten"
+    mkdir -p ${OUTPUT_PATH}"/log/serotypefinder"
     mkdir -p ${OUTPUT_PATH}"/report"
     elif [[ ! -d ${OUTPUT_PATH} ]]; then
     echo "${OUTPUT_PATH} already exists but is not a directory" 1>&2
 fi
 
 
+        
 ##########################################################
 #
 # ANALYSIS
@@ -67,20 +78,21 @@ fi
         echo "$sample FASTQ1: $fastq_1 FASTQ2: $fastq_2"
         
 
+
         ##########################################################
         #
         # 02  Assessment of the genomic sequence quality
         #
         ##########################################################
-        #sample="STEC_00757_1_17"
-        #FASTQ1="STEC_00757_1_17_S20_R1_001.fastq.gz"
-        #FASTQ2="STEC_00757_1_17_S20_R2_001.fastq.gz"
+        sample="STEC_00757_1_17_S20"
+        fastq_1="STEC_00757_1_17_S20_1.fastq.gz"
+        fastq_2="STEC_00757_1_17_S20_2.fastq.gz "
         
         # RAW FASTQC
-        ${CONDAPATH}/dgsp_amr_qc/bin/fastqc --quiet --threads ${THREADS} --outdir ${OUTPUT_PATH}"/qc/fastqc/raw" ${IR}"/"${FASTQ1} ${IR}"/"${FASTQ2}
+        ${CONDAPATH}/dgsp_amr_qc/bin/fastqc --quiet --threads ${THREADS} --outdir ${OUTPUT_PATH}"/qc/fastqc/raw" ${IR}"/"${fastq_1} ${IR}"/"${fastq_2}
         
         # TRIM ADAPTERS
-        ${CONDAPATH}/dgsp_amr_qc/bin/trimmomatic PE ${IR}"/"${FASTQ1} ${IR}"/"${FASTQ2} -threads ${THREADS} \
+        ${CONDAPATH}/dgsp_amr_qc/bin/trimmomatic PE ${IR}"/"${fastq_1} ${IR}"/"${fastq_2} -threads ${THREADS} \
         ${OUTPUT_PATH}"/out/0_fastq/"${sample}_pre_1.fastq.gz ${OUTPUT_PATH}"/out/0_fastq/"${sample}_pre_unpaired_1.fastq.gz  \
         ${OUTPUT_PATH}"/out/0_fastq/"${sample}_pre_2.fastq.gz ${OUTPUT_PATH}"/out/0_fastq/"${sample}_pre_unpaired_2.fastq.gz \
         ILLUMINACLIP:/software/Trimmomatic/adapters/TruSeq3-PE-2.fa:2:30:10:8:TRUE LEADING:5 TRAILING:5 SLIDINGWINDOW:4:15 MINLEN:50 \
@@ -119,6 +131,7 @@ fi
         -o ${OUTPUT_PATH}"/qc/kmerfinder/"${sample} \
         -db ${DATABASE_KMERFINDER}.ATG \
         -tax ${DATABASE_KMERFINDER}.tax -x \
+        -kp  ${CONDAPATH}/dgsp_amr_qc/bin/ \
         1> ${OUTPUT_PATH}"/log/kmerfinder/"${sample}.out \
         2> ${OUTPUT_PATH}"/log/kmerfinder/"${sample}.err
         
@@ -151,6 +164,7 @@ fi
         ${OUTPUT_PATH}"/out/1_assembly/"${sample}/${sample}.fasta  \
         1> ${OUTPUT_PATH}"/log/quast/"${sample}.out 2> ${OUTPUT_PATH}"/log/quast/"${sample}.err
         
+
         
         ##########################################################
         #
@@ -158,8 +172,9 @@ fi
         #
         ##########################################################
         
+        ##################################################### AMR
         # RESFINDER
-        ${CONDAPATH}/dgsp_amr_detection/bin/run_resfinder.py \
+        ${CONDAPATH}/dgsp_amr_mlst_detection/bin/run_resfinder.py \
         -db_res ${CGE_RESFINDER_RESGENE_DB} \
         -o ${OUTPUT_PATH}"/out/2_amr/"${sample} \
         -l 0.6 -t 0.8 --acquired \
@@ -167,16 +182,63 @@ fi
         1> ${OUTPUT_PATH}"/log/resfinder/"${sample}.out \
         2> ${OUTPUT_PATH}"/log/resfinder/"${sample}.err
         
-        
+        ############################################### ANNOTATION
         # PROKKA
-        ${CONDAPATH}/dgsp_amr_detection/bin/prokka \
+        ${CONDAPATH}/dgsp_amr_mlst_detection/bin/prokka \
         -cpus ${THREADS} --prefix ${sample} \
         --strain ${sample} \
         ${OUTPUT_PATH}"/out/1_assembly/"${sample}/${sample}.fasta \
         --outdir ${OUTPUT_PATH}"/out/3_annotation" --force \
         1> ${OUTPUT_PATH}"/log/prokka/"${sample}.out \
         2> ${OUTPUT_PATH}"/log/prokka/"${sample}.err
+ 
+        ##################################################### MLST
+        source activate ${AMR_MLST_ENV}
+   
+        # PARA MLST-CGE necesitamos especificar especie, ayudamos con MLST Torsten Seeman  
+
+        # MLST_Torsten
+        mkdir -p ${OUTPUT_PATH}"/out/4_more_analysis/mlst/"${sample}
+        ${AMR_MLST_ENV}/bin/perl ${AMR_MLST_ENV}/bin/mlst \
+        --label ${sample} \
+        ${OUTPUT_PATH}"/out/1_assembly/"${sample}/${sample}.fasta \
+        1> ${OUTPUT_PATH}"/out/4_more_analysis/mlst/"${sample}"/"${sample}"_mlst.tsv" \
+        2> ${OUTPUT_PATH}"/log/mlst_torsten/"${sample}".log"
+
+        # MLST-CGE
+        # Multi Locus Sequence Typing (MLST) from an assembled genome or from a set of reads.
         
+        # Comprobamos si fichero está vacío
+        # Check if the file is empty
+        if [ ! -s ${OUTPUT_PATH}"/out/4_more_analysis/mlst/"${sample}"/"${sample}"_mlst.tsv" ]; then
+          echo "File MLST Torsten is empty"
+        else
+          #echo "File is not empty"
+          species=`cat ${OUTPUT_PATH}"/out/4_more_analysis/mlst/"${sample}"/"${sample}"_mlst.tsv" | awk '{print $2'} | awk -F "_" '{print $1}'`
+          # #${CONDAPATH}/dgsp_amr_detection/bin/python ${CONDAPATH}/dgsp_amr_detection/bin/
+          mlst.py \
+          -i ${OUTPUT_PATH}"/out/1_assembly/"${sample}/${sample}.fasta \
+          -o ${OUTPUT_PATH}"/out/4_more_analysis/mlst/"${sample} \
+          -s ${species} \
+          -d 10 \
+          -p ${CGE_MLST_DB} \
+          -x \
+          1> ${OUTPUT_PATH}"/log/mlst_cge/"${sample}".out" \
+          2> ${OUTPUT_PATH}"/log/mlst_cge/"${sample}".err"
+          
+          ##################################################### IF ECOLI SEROTYPE
+          if echo "$species" | grep -q "ecoli"; then
+            mkdir -p ${OUTPUT_PATH}"/out/4_more_analysis/serotype/"${sample}
+            serotypefinder -i ${OUTPUT_PATH}"/out/1_assembly/"${sample}/${sample}.fasta \
+            -o ${OUTPUT_PATH}"/out/4_more_analysis/serotype/"${sample} \
+            -p ${CGE_SEROTYPEFINDER_DB} \
+            -x \
+            1> ${OUTPUT_PATH}"/log/serotypefinder/"${sample}".out" \
+            2> ${OUTPUT_PATH}"/log/serotypefinder/"${sample}".err"
+          fi 
+        fi
+
+        conda deactivate       
         
     done
 } < ${SAMPLESHEET}
