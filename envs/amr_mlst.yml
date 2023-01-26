@@ -1,0 +1,10 @@
+name: dgsp_amr_mlst_detection
+channels:
+  - bioconda
+  - conda-forge
+dependencies:
+  - resfinder=4.1.11
+  - prokka=1.14.6
+  - mlst-cge=2.0.9
+  - mlst=2.23.0
+  - serotypefinder=2.0.1
