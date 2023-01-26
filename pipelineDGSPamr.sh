@@ -5,6 +5,7 @@ export CGE_RESFINDER_RESGENE_DB="/ALMEIDA/PROJECTS/BACTERIAS/DGSP/resources/db_c
 export CGE_RESFINDER_RESPOINT_DB="/ALMEIDA/PROJECTS/BACTERIAS/DGSP/resources/db_cge/pointfinder"
 export CGE_DISINFINDER_DB="/ALMEIDA/PROJECTS/BACTERIAS/DGSP/resources/db_cge/disinfinder"
 export CGE_MLST_DB="/ALMEIDA/PROJECTS/BACTERIAS/DGSP/resources/db_cge/mlst"
+export CGE_SEROTYPEFINDER_DB="/ALMEIDA/PROJECTS/BACTERIAS/DGSP/resources/db_cge/serotypefinder"
 
 #export PERL5LIB=/software/miniconda3/envs/dgsp_amr_mlst_detection/lib/perl5/5.32
 
