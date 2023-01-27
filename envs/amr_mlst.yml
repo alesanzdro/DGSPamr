@@ -2,9 +2,16 @@ name: dgsp_amr_mlst_detection
 channels:
   - bioconda
   - conda-forge
+  - fmaguire
 dependencies:
   - resfinder=4.1.11
   - prokka=1.14.6
+  - virulencefinder=2.0.4
+  - plasmidfinder=2.1.6
+  - kmerresistance=2.2.0
   - mlst-cge=2.0.9
   - mlst=2.23.0
+  - ariba=2.14.6
+  - pmlst=2.0.3
   - serotypefinder=2.0.1
+  - seqsero2=1.2.1
