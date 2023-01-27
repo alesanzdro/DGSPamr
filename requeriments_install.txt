@@ -7,17 +7,23 @@ conda env create -f envs/assembly.yml
 conda env create -f envs/amr.yml
 
 ######################################################
+# BUILD RESOURCES
+
+RESOURCES_PATH="/ALMEIDA/PROJECTS/BACTERIAS/DGSP/resources"
+mkdir -p ${RESOURCES_PATH}
+
+######################################################
 # ADAPTADORES TRIMMOMATIC
 
 # adapters: https://github.com/usadellab/Trimmomatic/tree/main/adapters
-# cd /software/
-git clone git@github.com:usadellab/Trimmomatic.git
+git clone git@github.com:usadellab/Trimmomatic.git ${RESOURCES_PATH}/trimmomatic
 
 ######################################################
 # PROKKA
-conda activate dgsp_amr_detection 
-cd /ALMEIDA/PROJECTS/BACTERIAS/DGSP/resources
+conda activate dgsp_amr_mlst_detection 
+cd ${RESOURCES_PATH}
 prokka --setupdb
+conda deactivate
 
 ######################################################
 # RESFINDER DATABASES
@@ -29,22 +35,126 @@ prokka --setupdb
 
 # Note: We are currently working on hosting tarballed versions of the databases that can be downloaded, so that cloning can be avoided.
 
-cd /ALMEIDA/PROJECTS/BACTERIAS/DGSP/resources
 
-git clone https://git@bitbucket.org/genomicepidemiology/resfinder_db.git db_cge/resfinder
-git clone https://bitbucket.org/genomicepidemiology/pointfinder_db/ db_cge/pointfinder
-git clone https://bitbucket.org/genomicepidemiology/disinfinder_db/ db_cge/disinfinder
-git clone https://bitbucket.org/genomicepidemiology/mlst_db/src/master/ db_cge/mlst
-git clone https://bitbucket.org/genomicepidemiology/serotypefinder_db/src/master/ db_cge/serotypefinder
+git clone https://git@bitbucket.org/genomicepidemiology/resfinder_db.git ${RESOURCES_PATH}/db_cge/resfinder
+git clone https://bitbucket.org/genomicepidemiology/pointfinder_db/ ${RESOURCES_PATH}/db_cge/pointfinder
+git clone https://bitbucket.org/genomicepidemiology/disinfinder_db/ ${RESOURCES_PATH}/db_cge/disinfinder
+git clone https://bitbucket.org/genomicepidemiology/mlst_db/src/master/ ${RESOURCES_PATH}/db_cge/mlst
+git clone https://bitbucket.org/genomicepidemiology/serotypefinder_db/src/master/ ${RESOURCES_PATH}/db_cge/serotypefinder
+git clone https://bitbucket.org/genomicepidemiology/plasmidfinder_db/src/master/ ${RESOURCES_PATH}/db_cge/plasmidfinder
+git clone https://bitbucket.org/genomicepidemiology/pmlst_db/src/master/ ${RESOURCES_PATH}/db_cge/pmlst
 
 
 # Set approximate environment variables.
 
 # Example of how to set the environment variable in the bash shell. Remember this is only temporary, if you want it set every time you log in you need to add this line to for example your .bashrc file.
-export CGE_RESFINDER_RESGENE_DB="/ALMEIDA/PROJECTS/BACTERIAS/DGSP/resources/db_cge/resfinder"
-export CGE_RESFINDER_RESPOINT_DB="/ALMEIDA/PROJECTS/BACTERIAS/DGSP/resources/db_cge/pointfinder"
-export CGE_DISINFINDER_DB="/ALMEIDA/PROJECTS/BACTERIAS/DGSP/resources/db_cge/disinfinder"
-export CGE_SEROTYPEFINDER_DB="/ALMEIDA/PROJECTS/BACTERIAS/DGSP/resources/db_cge/serotypefinder"
+export CGE_RESFINDER_RESGENE_DB=${RESOURCES_PATH}"/db_cge/resfinder"
+export CGE_RESFINDER_RESPOINT_DB=${RESOURCES_PATH}"/db_cge/pointfinder"
+export CGE_DISINFINDER_DB=${RESOURCES_PATH}"/db_cge/disinfinder"
+export CGE_SEROTYPEFINDER_DB=${RESOURCES_PATH}"/db_cge/serotypefinder"
+export CGE_PLASMIDFINDER_DB=${RESOURCES_PATH}"/db_cge/plasmidfinder"
+export CGE_RESFINDERFSA_DB=${RESOURCES_PATH}"/db_cge/kmerresistance/ResFinder"
+export CGE_PMLST_DB=${RESOURCES_PATH}"/db_cge/pmlst"
+
+
+export TRIMMOMATIC_ADAPTERS=${RESOURCES_PATH}"/trimmomatic/adapters"
+export ARIBA_DB=${RESOURCES_PATH}"/ariba"
+
+
+
+
+# ARIBA
+mkdir -p ${ARIBA_DB}
+
+conda activate dgsp_amr_mlst_detection 
+
+# http://sanger-pathogens.github.io/ariba/
+#Get reference data, for instance from CARD. See getref for a full list.
+#ariba getref ncbi ${ARIBA_DB}"/out.ncbi"
+
+DA ERROR!
+
+Processing record 2226 of 6730 (accession NG_070746.1)
+'NG_048427.1'
+Processing record 2227 of 6730 (accession NG_048427.1)
+'AP018746.1'
+gb_feature.qualifer not found
+Traceback (most recent call last):
+  File "/software/miniconda3/envs/dgsp_amr_mlst_detection/bin/ariba", line 312, in <module>
+    args.func(args)
+  File "/software/miniconda3/envs/dgsp_amr_mlst_detection/lib/python3.6/site-packages/ariba/tasks/getref.py", line 11, in run
+    getter.run(options.outprefix)
+  File "/software/miniconda3/envs/dgsp_amr_mlst_detection/lib/python3.6/site-packages/ariba/ref_genes_getter.py", line 663, in run
+    exec('self._get_from_' + self.ref_db + '(outprefix)')
+  File "<string>", line 1, in <module>
+  File "/software/miniconda3/envs/dgsp_amr_mlst_detection/lib/python3.6/site-packages/ariba/ref_genes_getter.py", line 649, in _get_from_ncbi
+    id=f"{id[0]}.{accession}",
+TypeError: 'NoneType' object is not subscriptable
+
+# Se prueba a intentar eliminar el Accesion que parece que da problemas
+# Se modifica L632 script /software/miniconda3/envs/dgsp_amr_mlst_detection/lib/python3.6/site-packages/ariba/ref_genes_getter.py 
+                        if feature.type == 'CDS' and not acc_list[idx+1] in ['AP018746.1']:
+
+
+# Se prueba a bajar los datos directamente.
+https://www.ncbi.nlm.nih.gov/nuccore?term=313047%5BBioProject%5D
+313047[BioProject] 
+
+6473 HITS 
+se descarga Fasta con orden por organismos
+
+
+#Prepare reference data for ARIBA:
+ariba prepareref -f ${ARIBA_DB}"/out.ncbi.fa" -m ${ARIBA_DB}"/out.ncbi.tsv" ${ARIBA_DB}"/out.ncbi.prepareref"
+
+
+#Run local assemblies and call variants:
+#ariba run ${ARIBA_DB}"/out.ncbi.prepareref" reads1.fastq reads2.fastq out.run
+
+#Summarise data from several runs:
+#ariba summary out.summary out.run1/report1.tsv out.run2/report2.tsv out.run3/report3.tsv
+
+
+
+#### After install all environments
+#### Prepare ResFinder.fsa file
+
+mkdir -p /ALMEIDA/PROJECTS/BACTERIAS/DGSP/resources/db_cge/kmerresistance
+
+PERLDGSP="/software/miniconda3/envs/dgsp_amr_mlst_detection/bin/perl"
+
+# Loop adding all genes
+RESFILES=`ls ${CGE_RESFINDER_RESGENE_DB}/*.fsa`
+interruptor="ON"
+for RF in $RESFILES;
+do
+  if [ $interruptor == "ON" ];then
+    resgen="$(basename -- ${RF} | sed 's/.fsa//g')"
+    # Copy to temporal file
+    cp ${RF} ${CGE_RESFINDERFSA_DB}".temp."${resgen}
+    # Add prefix to all fasta headers
+    $PERLDGSP -p -e "s/^>/>${resgen}_/g" ${CGE_RESFINDERFSA_DB}".temp."${resgen} > ${CGE_RESFINDERFSA_DB}.fsa
+    rm ${CGE_RESFINDERFSA_DB}".temp."${resgen}
+
+    interruptor="OFF"
+  else
+    resgen="$(basename -- ${RF} | sed 's/.fsa//g')"
+    # Copy to temporal file
+    cp ${RF} ${CGE_RESFINDERFSA_DB}".temp."${resgen}
+    # Add prefix to all fasta headers
+    $PERLDGSP -p -e "s/^>/>${resgen}_/g" ${CGE_RESFINDERFSA_DB}".temp."${resgen} >> ${CGE_RESFINDERFSA_DB}.fsa
+    rm ${CGE_RESFINDERFSA_DB}".temp."${resgen}
+  fi
+done
+
+/software/miniconda3/envs/dgsp_amr_mlst_detection/bin/kma index -i ${CGE_RESFINDERFSA_DB}.fsa -o ${CGE_RESFINDERFSA_DB}
+
+conda deactivate
+
+
+
+
+
 
 # para instalar ambientes con X path de internet 
 # conda install anaconda-client -n base

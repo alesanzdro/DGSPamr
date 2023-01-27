@@ -1,10 +1,18 @@
 #!/bin/bash
 
+RESOURCES_PATH="/ALMEIDA/PROJECTS/BACTERIAS/DGSP/resources"
+
 # Example of how to set the environment variable in the bash shell. Remember this is only temporary, if you want it set every time you log in you need to add this line to for example your .bashrc file.
-export CGE_RESFINDER_RESGENE_DB="/ALMEIDA/PROJECTS/BACTERIAS/DGSP/resources/db_cge/resfinder"
-export CGE_RESFINDER_RESPOINT_DB="/ALMEIDA/PROJECTS/BACTERIAS/DGSP/resources/db_cge/pointfinder"
-export CGE_DISINFINDER_DB="/ALMEIDA/PROJECTS/BACTERIAS/DGSP/resources/db_cge/disinfinder"
-export CGE_MLST_DB="/ALMEIDA/PROJECTS/BACTERIAS/DGSP/resources/db_cge/mlst"
+export CGE_RESFINDER_RESGENE_DB=${RESOURCES_PATH}"/db_cge/resfinder"
+export CGE_RESFINDER_RESPOINT_DB=${RESOURCES_PATH}"/db_cge/pointfinder"
+export CGE_DISINFINDER_DB=${RESOURCES_PATH}"/db_cge/disinfinder"
+export CGE_SEROTYPEFINDER_DB=${RESOURCES_PATH}"/db_cge/serotypefinder"
+export CGE_PLASMIDFINDER_DB=${RESOURCES_PATH}"/db_cge/plasmidfinder"
+export CGE_RESFINDERFSA_DB=${RESOURCES_PATH}"/db_cge/kmerresistance/ResFinder"
+export CGE_PMLST_DB=${RESOURCES_PATH}"/db_cge/pmlst"
+
+export TRIMMOMATIC_ADAPTERS=${RESOURCES_PATH}"/trimmomatic/adapters"
+
 
 #export PERL5LIB=/software/miniconda3/envs/dgsp_amr_mlst_detection/lib/perl5/5.32
 
@@ -21,7 +29,6 @@ SPADESMEM=80
 
 # AMR MLST env
 AMR_MLST_ENV=${CONDAPATH}/dgsp_amr_mlst_detection
-
 
 
 ##########################################################
@@ -42,6 +49,9 @@ if [[ ! -e ${OUTPUT_PATH} ]]; then
     mkdir -p ${OUTPUT_PATH}"/out/3_annotation"
     mkdir -p ${OUTPUT_PATH}"/out/4_more_analysis/mlst"
     mkdir -p ${OUTPUT_PATH}"/out/4_more_analysis/serotype"
+    mkdir -p ${OUTPUT_PATH}"/out/4_more_analysis/kmerresistance"
+    mkdir -p ${OUTPUT_PATH}"/out/4_more_analysis/plasmidfinder"
+    mkdir -p ${OUTPUT_PATH}"/out/4_more_analysis/pmlst" 
     mkdir -p ${OUTPUT_PATH}"/log/trimmomatic"
     mkdir -p ${OUTPUT_PATH}"/log/bbmap"
     mkdir -p ${OUTPUT_PATH}"/log/kmerfinder"
@@ -51,8 +61,13 @@ if [[ ! -e ${OUTPUT_PATH} ]]; then
     mkdir -p ${OUTPUT_PATH}"/log/resfinder"
     mkdir -p ${OUTPUT_PATH}"/log/mlst_cge"
     mkdir -p ${OUTPUT_PATH}"/log/mlst_torsten"
+    mkdir -p ${OUTPUT_PATH}"/log/mlst_ariba"
     mkdir -p ${OUTPUT_PATH}"/log/serotypefinder"
+    mkdir -p ${OUTPUT_PATH}"/log/kmerresistance"
+    mkdir -p ${OUTPUT_PATH}"/log/plasmidfinder"
+    mkdir -p ${OUTPUT_PATH}"/log/pmlst"
     mkdir -p ${OUTPUT_PATH}"/report"
+    mkdir -p ${OUTPUT_PATH}"/tmp"
     elif [[ ! -d ${OUTPUT_PATH} ]]; then
     echo "${OUTPUT_PATH} already exists but is not a directory" 1>&2
 fi
@@ -95,7 +110,7 @@ fi
         ${CONDAPATH}/dgsp_amr_qc/bin/trimmomatic PE ${IR}"/"${fastq_1} ${IR}"/"${fastq_2} -threads ${THREADS} \
         ${OUTPUT_PATH}"/out/0_fastq/"${sample}_pre_1.fastq.gz ${OUTPUT_PATH}"/out/0_fastq/"${sample}_pre_unpaired_1.fastq.gz  \
         ${OUTPUT_PATH}"/out/0_fastq/"${sample}_pre_2.fastq.gz ${OUTPUT_PATH}"/out/0_fastq/"${sample}_pre_unpaired_2.fastq.gz \
-        ILLUMINACLIP:/software/Trimmomatic/adapters/TruSeq3-PE-2.fa:2:30:10:8:TRUE LEADING:5 TRAILING:5 SLIDINGWINDOW:4:15 MINLEN:50 \
+        ILLUMINACLIP:${TRIMMOMATIC_ADAPTERS}/TruSeq3-PE-2.fa:2:30:10:8:TRUE LEADING:5 TRAILING:5 SLIDINGWINDOW:4:15 MINLEN:50 \
         -summary ${OUTPUT_PATH}"/qc/stats/trimmomatic/"${sample}.txt 1> ${OUTPUT_PATH}"/log/trimmomatic/"${sample}.out 2> ${OUTPUT_PATH}"/log/trimmomatic/"${sample}.err
         
         # BBDUK TRIM START / END
@@ -139,11 +154,11 @@ fi
         
         ##########################################################
         #
-        # 03 Assessment of the genomic sequence quality
+        # 03 ASSEMBLY
         #
         ##########################################################
         
-        # ASSEMBLY
+        # SPADES
         ${CONDAPATH}/dgsp_amr_assembly/bin/spades.py \
         -1 ${OUTPUT_PATH}"/out/0_fastq/"${sample}_1.fastq.gz \
         -2 ${OUTPUT_PATH}"/out/0_fastq/"${sample}_2.fastq.gz \
@@ -172,9 +187,15 @@ fi
         #
         ##########################################################
         
+        source activate ${AMR_MLST_ENV}
+
+        #####################################################
+        #####################################################
+        # PHENOTYPING
+
         ##################################################### AMR
         # RESFINDER
-        ${CONDAPATH}/dgsp_amr_mlst_detection/bin/run_resfinder.py \
+        run_resfinder.py \
         -db_res ${CGE_RESFINDER_RESGENE_DB} \
         -o ${OUTPUT_PATH}"/out/2_amr/"${sample} \
         -l 0.6 -t 0.8 --acquired \
@@ -184,16 +205,34 @@ fi
         
         ############################################### ANNOTATION
         # PROKKA
-        ${CONDAPATH}/dgsp_amr_mlst_detection/bin/prokka \
+        ${AMR_MLST_ENV}/bin/perl ${AMR_MLST_ENV}/bin/prokka \
         -cpus ${THREADS} --prefix ${sample} \
         --strain ${sample} \
         ${OUTPUT_PATH}"/out/1_assembly/"${sample}/${sample}.fasta \
         --outdir ${OUTPUT_PATH}"/out/3_annotation" --force \
         1> ${OUTPUT_PATH}"/log/prokka/"${sample}.out \
         2> ${OUTPUT_PATH}"/log/prokka/"${sample}.err
- 
+        
+
+        ############################################### 
+        # KmerResistance
+        # KmerResistance correlates mapped genes with the predicted species of WGS samples, 
+        # where this this allows for identification of genes in samples which have been poorly 
+        # sequenced or high accuracy predictions for samples with contamination
+        mkdir -p ${OUTPUT_PATH}"/out/4_more_analysis/kmerresistance/"${sample}
+        kmerresistance \
+        -i ${OUTPUT_PATH}"/out/0_fastq/"${sample}_1.fastq.gz ${OUTPUT_PATH}"/out/0_fastq/"${sample}_2.fastq.gz \
+        -o  ${OUTPUT_PATH}"/out/4_more_analysis/kmerresistance/"${sample}"/"${sample} \
+        -t_db	${CGE_RESFINDERFSA_DB} \
+        -s_db ${DATABASE_KMERFINDER}.ATG \
+        1> ${OUTPUT_PATH}"/log/kmerresistance/"${sample}.out \
+        2> ${OUTPUT_PATH}"/log/kmerresistance/"${sample}.err
+
+        #####################################################
+        #####################################################
+        # Typing
+
         ##################################################### MLST
-        source activate ${AMR_MLST_ENV}
    
         # PARA MLST-CGE necesitamos especificar especie, ayudamos con MLST Torsten Seeman  
 
@@ -237,6 +276,60 @@ fi
             2> ${OUTPUT_PATH}"/log/serotypefinder/"${sample}".err"
           fi 
         fi
+        
+        ###############################################
+        #Ariba
+        #ARIBA: Antibiotic Resistance Identification By Assembly
+        mkdir -p ${OUTPUT_PATH}"/out/4_more_analysis/mlst/"${sample}"/ariba"
+
+        #Run local assemblies and call variants:
+        ariba run \
+        --tmp_dir ${OUTPUT_PATH}"/tmp" \
+        --threads ${THREADS} \
+        --force \
+        ${ARIBA_DB}"/out.ncbi.prepareref" \
+        ${OUTPUT_PATH}"/out/0_fastq/"${sample}_1.fastq.gz ${OUTPUT_PATH}"/out/0_fastq/"${sample}_2.fastq.gz \
+        ${OUTPUT_PATH}"/out/4_more_analysis/mlst/"${sample}"/ariba" \
+        1> ${OUTPUT_PATH}"/log/mlst_ariba/"${sample}".out" \
+        2> ${OUTPUT_PATH}"/log/mlst_ariba/"${sample}".err"
+
+        #Summarise data from several runs:
+        #ariba summary \
+        #${OUTPUT_PATH}"/out/4_more_analysis/mlst/"${sample}"/ariba/"${sample}".summary"\
+        #${OUTPUT_PATH}"/out/4_more_analysis/mlst/"${sample}"/ariba/report.tsv"
+
+
+        ############################################### 
+        #PlasmidFinder
+        #PlasmidFinder identifies plasmids in total or partial sequenced isolates of bacteria.
+        mkdir -p ${OUTPUT_PATH}"/out/4_more_analysis/plasmidfinder/"${sample} 
+        plasmidfinder.py \
+        -i ${OUTPUT_PATH}"/out/1_assembly/"${sample}/${sample}.fasta \
+        -o ${OUTPUT_PATH}"/out/4_more_analysis/plasmidfinder/"${sample} \
+        -p ${CGE_PLASMIDFINDER_DB} \
+        -tmp ${OUTPUT_PATH}"/tmp" \
+        -x \ 
+        1> ${OUTPUT_PATH}"/log/plasmidfinder/"${sample}".out" \
+        2> ${OUTPUT_PATH}"/log/plasmidfinder/"${sample}".err"
+
+        ###############################################
+        #pMLST
+        #Multi Locus Sequence Typing (MLST) from an assembled plasmid or from a set of reads.
+        pmlst_schemes=(incac incf inchi1 inchi2 inci1 incn pbssb1-family shigella)
+        for pscheme in ${pmlst_schemes[@]}; do
+          mkdir -p ${OUTPUT_PATH}"/out/4_more_analysis/pmlst/"${sample}"/"${pscheme}
+          pmlst.py \
+          -i ${OUTPUT_PATH}"/out/1_assembly/"${sample}/${sample}.fasta \
+          -o ${OUTPUT_PATH}"/out/4_more_analysis/pmlst/"${sample}"/"${pscheme} \
+          -p ${CGE_PMLST_DB} \
+          -t ${OUTPUT_PATH}"/tmp" \
+          -s ${pscheme} \
+          -x \
+          1> ${OUTPUT_PATH}"/log/pmlst/"${sample}"_"${pscheme}".out" \
+          2> ${OUTPUT_PATH}"/log/pmlst/"${sample}"_"${pscheme}".err"
+
+        done
+
 
         conda deactivate       
         
